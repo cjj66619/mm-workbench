@@ -1,0 +1,23 @@
+# 比赛工作区（含赛题、数据、队号），赛后如需归档另开分支
+contest/
+
+# 编译产物
+*.aux *.log *.out *.toc *.bbl *.blg *.fls *.fdb_latexmk *.synctex.gz
+_docx_body.*
+*.docx#
+~$*.docx
+.~lock.*#
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+.ipynb_checkpoints/
+
+# 系统
+.DS_Store
+Thumbs.db
+
+# 密钥
+.env
+.env.*
