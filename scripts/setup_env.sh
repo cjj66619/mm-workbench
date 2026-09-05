@@ -87,7 +87,7 @@ check_all() {
   for c in typst xelatex pandoc soffice pdftoppm drawio xvfb-run python3; do
     if have "$c"; then ok "$c" "$(command -v "$c")"; else miss "$c" ""; fail=1; fi
   done
-  if fc-list : family | grep -qi "Noto Serif CJK SC"; then ok "font" "Noto Serif CJK SC"; else miss "font" "Noto Serif CJK SC"; fail=1; fi
+  if [[ -n "$(fc-list "Noto Serif CJK SC")" ]]; then ok "font" "Noto Serif CJK SC"; else miss "font" "Noto Serif CJK SC"; fail=1; fi
   python3 - <<'PY' || fail=1
 import importlib, sys
 mods = {"numpy":"numpy","scipy":"scipy","pandas":"pandas","matplotlib":"matplotlib","seaborn":"seaborn",
