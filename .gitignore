@@ -4,6 +4,8 @@ contest/
 # 编译产物
 *.aux *.log *.out *.toc *.bbl *.blg *.fls *.fdb_latexmk *.synctex.gz
 _docx_body.*
+_docx_shadow/
+docx_render/
 *.docx#
 ~$*.docx
 .~lock.*#

@@ -35,13 +35,14 @@ python3 .agents/skills/docx-export/scripts/paper2docx.py --paper paper --pdf
 | `--reference official.docx` | 当届官方 Word 模板；其段落/标题样式、页边距会被套用 |
 | `--title / --abstract-file / --keywords` | 模板里抽不到或想覆盖时手动指定（关键词用 `;` 分隔） |
 | `--no-front-matter` | 不生成标题/摘要页（官方模板自带、准备手工粘贴时用） |
-| `--pdf` | 用 LibreOffice 把 DOCX 再转 PDF，供逐页目检 |
+| `--pdf` | 用 LibreOffice 把 DOCX 再转 PDF 到 `<paper>/docx_render/`，供逐页目检（不会覆盖 Typst/LaTeX 原生 `main.pdf`） |
 | `--keep-entry` | pandoc 失败时保留 `_docx_body.*` 中间文件排查 |
 | `--strict` | 仍有占位符 / 内部文件名泄露时以退出码 2 结束；终稿导出必加 |
 
 ## 转换规则（脚本已实现，无需手工做）
 
-- 只转正文：从 `main.typ` 的 `#include` / `main.tex` 的 `\input` 收集章节，跳过封面、手写目录等 Word 不需要的排版代码。
+- 只转正文：从 `main.typ` 的 `#include` / `main.tex` 的 `\input` 收集章节，跳过封面、手写目录等 Word 不需要的排版代码。摘要既可直接写在 `main.typ` 里，也可 `#include` 一个含 `关键词：` 的文件（如 `abstract.typ`，须放在 `paper/` 根目录）。
+- 交叉引用：pandoc 不解析 Typst `@fig-x` / `@tbl-x`，脚本会按出现顺序把它们替换为 `图 N` / `表 N` 并去掉 `<label>`（在临时影子目录中完成，不改源文件）。
 - 标题/摘要/关键词：从模板抽取后用源语言重写为正文开头一页，因此摘要里的公式也能保留；之后分页。
 - 公式：pandoc 输出 Word 原生 OMML，Word 里可继续编辑。
 - 图：`figures/*.pdf` 自动渲染为同名 `.png`（200 dpi）后嵌入；图题自动加"图 N"。

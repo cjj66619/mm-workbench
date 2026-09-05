@@ -145,10 +145,17 @@ def extract_front_matter(engine: str, main: Path) -> FrontMatter:
         if m:
             fm.title = m.group(1)
         lines = text.splitlines()
+        # 摘要若被拆到单独文件（include("abstract.typ")），先内联进来再抽取
+        for m_inc in re.finditer(r'include\("([^"]+)"\)', text):
+            inc = main.parent / m_inc.group(1)
+            if inc.exists() and '关键词：' in inc.read_text(encoding='utf-8'):
+                idx = next(i for i, l in enumerate(lines) if m_inc.group(0) in l)
+                lines = lines[:idx] + inc.read_text(encoding='utf-8').splitlines() + lines[idx + 1:]
+                break
         start = next((i for i, l in enumerate(lines) if '要：' in l and '摘' in l), None)
         end = next((i for i, l in enumerate(lines) if '关键词：' in l), None)
         if start is not None and end is not None and end > start:
-            noise = re.compile(r'^\s*(v\(|block\[|#set\b|pagebreak|\]\s*$)')
+            noise = re.compile(r'^\s*(v\(|#?block\[|#set\b|#import\b|#v\(|pagebreak|\]\s*$)')
             kept = [l for l in lines[start + 1:end] if not noise.match(l)]
             body = '\n'.join(l.strip() for l in kept).strip()
             if body.startswith('[') and body.endswith(']'):
@@ -156,6 +163,8 @@ def extract_front_matter(engine: str, main: Path) -> FrontMatter:
             fm.abstract = [p.strip() for p in re.split(r'\n\s*\n', body) if p.strip()]
             kw_line = lines[end].split('关键词：]', 1)[-1]
             fm.keywords = [k.strip() for k in re.findall(r'\[([^\]]+)\]', kw_line) if k.strip()]
+            if not fm.keywords:
+                fm.keywords = [k.strip() for k in re.split(r'#h\([^)]*\)|[;；]', kw_line) if k.strip()]
     else:
         m = re.search(r'\\heiti\\bfseries\s*(.+?)\}%', text)
         if m:
@@ -204,6 +213,45 @@ def convert_pdf_figures(engine: str, sections: list[Path], paper: Path) -> list[
                 continue
             made.append(png)
     return made
+
+
+LABEL_TYP = re.compile(r'<([A-Za-z][\w:.-]*)>')
+
+
+def resolve_typst_refs(sections: list[Path], paper: Path) -> tuple[Path, list[Path]]:
+    """pandoc 不解析 Typst 的 @label 交叉引用，会原样输出 [label]。
+
+    按 Typst 默认规则（图/表各自全局连续编号）预先把 @fig-x / @tbl-x 替换成“图 N”/“表 N”。
+    改写后的章节写到 paper 的同级目录 _docx_shadow/ 下（保持目录深度，图片相对路径不变）。
+    返回 (shadow 根目录, 影子章节列表)。
+    """
+    numbers: dict[str, str] = {}
+    counters = {"图": 0, "表": 0}
+    for sec in sections:
+        text = sec.read_text(encoding="utf-8")
+        text = re.sub(r"```.*?```", "", text, flags=re.S)
+        for m in LABEL_TYP.finditer(text):
+            lab = m.group(1)
+            if lab.startswith(("sec", "eq")):
+                continue
+            # 标签所属图元：向前找最近的 fig( / tbl( / figure( / table( 调用
+            head = text[max(0, m.start() - 4000):m.start()]
+            last = max(head.rfind("tbl("), head.rfind("kind: table"), head.rfind("#table("))
+            last_fig = max(head.rfind("fig("), head.rfind("figure("), head.rfind("image("))
+            kind = "表" if (lab.startswith("tbl") or last > last_fig) else "图"
+            counters[kind] += 1
+            numbers[lab] = f"{kind} {counters[kind]}"
+    shadow = paper.parent / "_docx_shadow"
+    if shadow.exists():
+        shutil.rmtree(shadow)
+    for src in paper.rglob("*.typ"):
+        dst = shadow / src.relative_to(paper)
+        dst.parent.mkdir(parents=True, exist_ok=True)
+        text = src.read_text(encoding="utf-8")
+        text = re.sub(r'@([A-Za-z][\w:.-]*)', lambda m: numbers.get(m.group(1), m.group(0)), text)
+        text = LABEL_TYP.sub("", text)
+        dst.write_text(text, encoding="utf-8")
+    return shadow, [shadow / s.relative_to(paper) for s in sections]
 
 
 def build_reference_docx(dst: Path) -> None:
@@ -318,8 +366,11 @@ def docx_to_pdf(docx_path: Path) -> Path | None:
     if not soffice:
         print("[info] 未找到 soffice，跳过 DOCX->PDF 渲染抽检")
         return None
-    r = run([soffice, "--headless", "--convert-to", "pdf", "--outdir", str(docx_path.parent), str(docx_path)], timeout=300)
-    pdf = docx_path.with_suffix(".pdf")
+    # 输出到独立子目录，避免覆盖排版引擎生成的 main.pdf
+    outdir = docx_path.parent / "docx_render"
+    outdir.mkdir(exist_ok=True)
+    r = run([soffice, "--headless", "--convert-to", "pdf", "--outdir", str(outdir), str(docx_path)], timeout=300)
+    pdf = outdir / docx_path.with_suffix(".pdf").name
     if r.returncode != 0 or not pdf.exists():
         print(f"[warn] soffice 转换失败: {r.stderr[-500:]}")
         return None
@@ -374,9 +425,13 @@ def main() -> None:
 
         # 正文入口：摘要页 + 章节，不带封面 / 手写目录等 Word 不需要的排版代码
         head = "" if args.no_front_matter else front_matter_source(engine, fm)
+        shadow: Path | None = None
+        work = paper
         if engine == "typst":
-            entry = paper / "_docx_body.typ"
-            entry.write_text(head + "".join(f'#include("{s.relative_to(paper).as_posix()}")\n' for s in sections), encoding="utf-8")
+            shadow, sections = resolve_typst_refs(sections, paper)
+            work = shadow
+            entry = work / "_docx_body.typ"
+            entry.write_text(head + "".join(f'#include("{s.relative_to(work).as_posix()}")\n' for s in sections), encoding="utf-8")
             fmt = "typst"
         else:
             entry = paper / "_docx_body.tex"
@@ -394,13 +449,15 @@ def main() -> None:
                 "--number-sections",
                 "--reference-doc", str(ref),
                 "--lua-filter", str(lua),
-                "--resource-path", str(paper),
+                "--resource-path", str(work),
                 "-o", str(out),
             ]
-            r = run(cmd, cwd=str(paper))
+            r = run(cmd, cwd=str(work))
         finally:
             if r.returncode == 0 or not args.keep_entry:
                 entry.unlink(missing_ok=True)
+                if shadow is not None:
+                    shutil.rmtree(shadow, ignore_errors=True)
         if r.returncode != 0:
             hint = f"（已保留 {entry} 供排查）" if args.keep_entry else "（加 --keep-entry 可保留中间文件排查）"
             sys.exit(f"pandoc 失败{hint}:\n{r.stderr}")
