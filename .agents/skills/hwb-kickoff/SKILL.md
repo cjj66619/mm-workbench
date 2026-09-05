@@ -5,7 +5,9 @@ description: "华为杯（中国研究生数学建模竞赛）开赛入口。拿
 
 # 华为杯开赛入口
 
-本 skill 是 `1start-mathmodel` 在华为杯场景下的外壳：把华为杯特有的准备工作（题目落盘、官方模板校对、封面替换、交稿格式）前置，其余建模流程全部委托给六阶段 skill，不重复它们的内容。
+本 skill 是 `1start-mathmodel` 在华为杯场景下的外壳：把华为杯特有的准备工作（题目落盘、官方模板校对、封面替换、AI 使用登记、交稿格式）前置，其余建模流程全部委托给六阶段 skill，不重复它们的内容。
+
+开赛前先读 `../_references/huaweibei_excellent_paper_patterns.md`：§1 是官方模板明文要求（含 AI 工具使用声明），§3–§4 是优秀论文的摘要与小问章节范式。
 
 ## Step 0：确认输入
 
@@ -15,6 +17,7 @@ description: "华为杯（中国研究生数学建模竞赛）开赛入口。拿
 2. 当届官方论文模板（Word/PDF）——官网在开赛前后发布，封面年年变。没有就先用仓库内模板演练，并在 `todo.md` 记一条"替换官方封面"。
 3. 团队信息：学校、参赛队号（只用于封面；正文与摘要页禁止出现）。
 4. 排版引擎偏好：Typst（默认，编译快）或 LaTeX；交稿格式：PDF、DOCX 或两者（华为杯常见要求为 PDF，允许时再出 DOCX）。
+5. AI 工具信息：本次使用的 AI 工具名称、版本/型号、开发机构（例如 `Devin, <版本>, Cognition AI`；若队员还用了其他工具一并登记）。官方模板要求在参考文献中列出并在正文相应位置标注，缺了无法交稿。
 
 ## Step 1：初始化工作区
 
@@ -31,7 +34,18 @@ contest/2026-B/
 └── paper/              # 从 5writing 模板复制（见 Step 2）
 ```
 
-把题面转成文本便于反复读取：`pdftotext -layout problem/X.pdf problem/problem.md`；表格附件用 `pandas`/`openpyxl` 先做一次 `head()` 与 `describe()` 记录到 `reports/DATA_REPORT.md` 的开头。
+把题面转成文本便于反复读取：`pdftotext -layout problem/X.pdf problem/problem.md`（DOCX 题面用 `pandoc X.docx -t gfm -o problem/problem.md`）；表格附件用 `pandas`/`openpyxl` 先做一次 `head()` 与 `describe()` 记录到 `reports/DATA_REPORT.md` 的开头。
+
+同时创建 `reports/AI_USAGE.md`，登记 Step 0 收到的 AI 工具信息，并在后续阶段追加“哪些段落/代码由 AI 生成”：
+
+```markdown
+# AI 工具使用登记（供参考文献与正文标注使用）
+| 工具名称 | 版本/型号 | 开发机构 | 使用日期 | 用于 |
+| --- | --- | --- | --- | --- |
+| Devin | <版本> | Cognition AI | 2026-xx-xx | 数据预处理代码、图表生成、文字初稿 |
+```
+
+`5writing` 据此生成参考文献的 AI 工具条目和正文标注，`6verity` 据此核对。
 
 ## Step 2：套用并校对当届模板
 
@@ -43,6 +57,7 @@ contest/2026-B/
    - 校徽/赛徽：官方模板的封面若有变化，把官方封面页导出为 PDF 后直接替换 `paper/logo.pdf` / `paper/title.pdf`，或把整页封面另存为 `paper/cover.pdf` 并在 `main.typ` 的 `cover-page()` 中改为 `image("cover.pdf")`；
    - 学校、队号、队员：替换 `main.typ` 中 `cover-info-table()` 内的 `[学校名称]`、`[参赛队号]`、`[成员 A/B/C]`，或 `main.tex` 中 `\coverpage` 定义内的同名占位符（队员姓名按官方要求可留空）。
 3. **摘要页与正文格式**：逐项对照官方模板检查字号（正文小四）、页边距、页码起始（摘要页为第 1 页）、标题编号格式、图表题格式；有差异就改 `main.typ` / `main.tex` 顶部的排版参数，不要改章节内容文件。
+   同时把官方模板中的**文字要求**与 `huaweibei_excellent_paper_patterns.md` §1 逐条对照（摘要页数上限、AI 声明格式、附录要求、参考文献格式）；当届有新增或变化的，先更新该文件 §1 再开工，不要靠记忆。
 4. 编译一次空模板确认通过：
    - Typst：在工作区根目录 `typst compile --root . paper/main.typ`
    - LaTeX：在 `paper/` 内 `xelatex -interaction=nonstopmode main.tex` 两遍
@@ -58,12 +73,12 @@ contest/2026-B/
 
 | 阶段 | Skill | 华为杯补充要求 |
 | --- | --- | --- |
-| 分析建模 | `2analysis-modeling` | 华为杯题目通常 4–6 个递进小问、数据量大；小问之间的依赖关系必须画出并写进报告 |
+| 分析建模 | `2analysis-modeling` | 华为杯题目通常 4–6 个递进小问、数据量大；小问之间的依赖关系（前一问的哪个输出是后一问的输入）必须画出并写进报告；每问除主模型外定一个可用基线，供结果对比 |
 | 数据审计 | `data-auditor-cleaner` | 有附件数据时必做；原始附件只读 |
 | 代码图表 | `3coding-visual` | 固定随机种子；大数据先抽样调通再全量跑；所有结果写入 `results/` 文件 |
-| 稳健性 | `robustness-checker` | 至少对主模型做参数灵敏度 + 数据扰动两类检查，结论回填 `RESULTS_REPORT.md` |
+| 稳健性 | `robustness-checker` | 每个主模型至少一种验证证据（误差/基线对比/扰动灵敏度/约束满足性），主结论模型做参数灵敏度 + 数据扰动两类；结论回填 `RESULTS_REPORT.md`，写进对应小问的结果分析，不必单开一章 |
 | 流程图 | `4drawio` / `scibox-diagram` | 至少一张技术路线图；drawio 不可用时用 `scibox-diagram` 手写 XML 再转 PDF |
-| 论文 | `5writing` | 模板 = `zh/huaweibei`（Typst）或 `zh/huaweibei-latex`；正文禁止出现队号、学校、内部文件名 |
+| 论文 | `5writing` | 模板 = `zh/huaweibei`（Typst）或 `zh/huaweibei-latex`；每问按“问题分析 → 模型建立 → 模型求解 → 结果分析与验证 → 问题小结”写；摘要每问一段含数值结论；参考文献列 AI 工具条目；正文禁止出现队号、学校、内部文件名 |
 | 验收 | `6verity` + `consistency-auditor` + `quality-assurance-auditor` | 编译 + 一致性 + 终审三道 |
 | 交稿 | `docx-export`（需要 DOCX 时） | `--reference 官方模板.docx`，在 Word 中拼回官方封面 |
 
@@ -73,7 +88,10 @@ contest/2026-B/
 
 - [ ] `paper/main.pdf` 编译通过，逐页目检无溢出、无空白页、无占位符
 - [ ] 封面为当届官方格式，队号/学校仅出现在封面
-- [ ] 摘要页含题目、摘要、关键词，摘要有每个小问的方法与数值结论
+- [ ] 摘要页含题目、摘要、关键词（3–7 个），摘要 ≤ 2 页，每个小问一段且含方法与数值结论
+- [ ] 参考文献含 AI 工具条目（工具名称, 版本/型号, 开发机构, 使用日期），AI 生成的正文段落/附录代码处有标注，与 `reports/AI_USAGE.md` 一致
+- [ ] 每个主模型在论文中至少有一处验证证据（误差/基线对比/扰动灵敏度/约束满足性），每问有小结
+- [ ] 公式全部为文本公式，无公式截图；符号表含单位列
 - [ ] 正文数值与 `reports/RESULTS_REPORT.md` 一致（`consistency-auditor` PASSED）
 - [ ] 图表编号连续、均被正文引用；参考文献可追溯
 - [ ] 需要 DOCX 时：`paper2docx.py --paper paper --pdf --strict` 退出码 0（`placeholders` 与 `leaked_internal_names` 为空），在 Word 中拼回官方封面
