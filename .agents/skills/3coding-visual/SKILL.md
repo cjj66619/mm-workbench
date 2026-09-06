@@ -63,7 +63,28 @@ AI 在实现、求解和作图过程中，必须把关键中间过程保存成�
 
 ### Step 4: 生成数据驱动图表
 
-根据 `reports/ANALYSIS_MODELING_REPORT.md` 和 `reports/RESULTS_REPORT.md` 规划图表，生成 PDF 到 `figures/`。
+根据 `reports/ANALYSIS_MODELING_REPORT.md` 和 `reports/RESULTS_REPORT.md` 规划图表，生成 PDF 到 `figures/`。绘图规范全文见 `../_references/figure_style.md`（字体/字号/线宽/配色/尺寸/导出/中文乱码排查），本节只列强制步骤。
+
+**4.1 统一风格模块（强制）**
+
+所有 Matplotlib/Seaborn 图必须通过 `scripts/mm_plot_style.py` 出图，不允许各脚本自行设置 `rcParams`、字体或 `savefig`：
+
+```bash
+cp ../../.agents/skills/3coding-visual/scripts/mm_plot_style.py code/   # 与绘图脚本同级，保证 code/ 可独立复现
+```
+
+```python
+from mm_plot_style import apply_style, COLORS, figsize, save_fig
+
+apply_style(lang="zh")                      # 中文论文；英文论文 lang="en"；需要衬线用 font="serif"
+fig, ax = plt.subplots(figsize=figsize("full"))   # "full"=14 cm, "half"=7.5 cm（并排）
+ax.plot(x, y, color=COLORS[0], label="预测值")
+save_fig(fig, "figures/fig_q1_fit", source="results/q1_fit.csv", params={"seed": 0})
+```
+
+`apply_style` 自动选择当前系统上 Matplotlib 能识别且轮廓为 TrueType 的中文字体（Linux 上通常是 WenQuanYi Micro Hei / AR PL UMing），并配合 `pdf.fonttype=42` 导出；这是修复“中文图经 DOCX 转 PNG 后乱码”的根因方案，不要用 `pdf.fonttype=3` 或直接写死 `Noto Sans CJK SC` 绕过。`save_fig` 默认输出 PDF + PNG，自动运行 PDF 字体自检，并把脚本、数据来源、参数、字体写入 `figures/_manifest.json`，作为图表的生成记录。
+
+**4.2 图表内容要求**
 
 典型图表：
 
@@ -74,9 +95,18 @@ AI 在实现、求解和作图过程中，必须把关键中间过程保存成�
 
 图表要求：
 
-- PDF 矢量输出，适合论文。
-- 不在图内写大标题，标题交给论文 caption（Typst 的 `caption:` 或 LaTeX 的 `\caption{}`）。
-- 中文论文图表使用中文坐标轴和图例；英文论文使用英文。
+- 每张图只回答一个问题；图内文字与论文语言一致（中文论文中文坐标轴/图例），不在图内写大标题，标题交给论文 caption（Typst 的 `caption:` 或 LaTeX 的 `\caption{}`）。
+- 只用 `COLORS` / `PALETTES` 与 `SEQUENTIAL_CMAP`、`DIVERGING_CMAP`，不用 jet/rainbow；同类图配色与线型保持一致。
+- 图宽取 `figsize("full"|"half"|...)`，不要超过 16 cm 版心；基准字号 9 pt，任何文字不小于 5 pt。
+- 多面板用 `label_panels(axes)` 加 (a)(b)(c)，面板对齐。
 - 不生成流程图/架构图/路线图。
 
-图表可以由主程序或独立脚本生成，不强制固定脚本名。无论采用哪种方式，都必须保存图表对应的数据来源和生成记录。
+**4.3 出图后检查（强制）**
+
+```bash
+python3 ../../.agents/skills/3coding-visual/scripts/check_figures.py --expect-cjk figures/   # 英文论文去掉 --expect-cjk
+```
+
+任何 `FAIL`（字体未嵌入、CFF 轮廓按 TrueType 嵌入、中文提取不到、缺字）必须修好再进入 `5writing`。`check_figures.py` 依赖同目录的 `mm_plot_style.py`，原地运行即可。
+
+图表可以由主程序或独立脚本生成，不强制固定脚本名。无论采用哪种方式，`figures/_manifest.json` 必须能对应到每张图的数据来源与生成脚本，并在 `reports/RESULTS_REPORT.md` 中引用。

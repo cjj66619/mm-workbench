@@ -8,6 +8,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+STYLE_MODULE = "mm_plot_style.py"
+
 SCRIPT_MAP = {
     "multiclass-shap-combo": "make_multiclass_shap_combo.py",
     "paired-raincloud": "make_paired_raincloud.py",
@@ -134,6 +136,9 @@ def main() -> None:
     src = skill_root / "scripts" / "templates" / SCRIPT_MAP[template_id]
     if not src.exists():
         raise SystemExit(f"Bundled script missing: {src}")
+    style_src = skill_root.parent / "3coding-visual" / "scripts" / STYLE_MODULE
+    if not style_src.exists():
+        raise SystemExit(f"Shared plot style missing: {style_src}")
 
     project = Path(args.project).expanduser().resolve()
     scripts_dir = project / "scripts"
@@ -149,6 +154,10 @@ def main() -> None:
     else:
         shutil.copy2(src, dst)
         print(f"Copied template script: {dst}")
+    style_dst = scripts_dir / STYLE_MODULE
+    if not style_dst.exists() or args.overwrite:
+        shutil.copy2(style_src, style_dst)
+        print(f"Copied shared plot style: {style_dst}")
 
     result = subprocess.run([sys.executable, str(dst)], cwd=str(project), check=False)
     if result.returncode != 0:

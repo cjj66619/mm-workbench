@@ -28,9 +28,12 @@
 \usepackage{multirow}
 
 % ---------- 字体（fontspec + ctex，xelatex 编译） ----------
-\IfFontExistsTF{Times New Roman}{\setmainfont{Times New Roman}}{}
+% Linux（setup_env.sh）无 Times New Roman 时用同字宽的 Liberation Serif，与 Typst 模板 lib.typ 一致
+\IfFontExistsTF{Times New Roman}{\setmainfont{Times New Roman}}{%
+  \IfFontExistsTF{Liberation Serif}{\setmainfont{Liberation Serif}}{}}
 \IfFontExistsTF{Courier New}{\setmonofont{Courier New}}{%
-  \IfFontExistsTF{DejaVu Sans Mono}{\setmonofont{DejaVu Sans Mono}}{\IfFontExistsTF{Menlo}{\setmonofont{Menlo}}{}}}
+  \IfFontExistsTF{Liberation Mono}{\setmonofont{Liberation Mono}}{%
+    \IfFontExistsTF{DejaVu Sans Mono}{\setmonofont{DejaVu Sans Mono}}{\IfFontExistsTF{Menlo}{\setmonofont{Menlo}}{}}}}
 % 隶书 / 华文新魏 仅 Windows/macOS fontset 提供；缺失时回退黑体
 \providecommand{\lishu}{\heiti}
 

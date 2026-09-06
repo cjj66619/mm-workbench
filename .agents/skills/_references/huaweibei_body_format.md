@@ -42,8 +42,9 @@
 | 强调 | 加粗（`<w:b/>`），不用斜体、下划线做中文强调 |
 | 段内小标题 | 官方示例：`问题一：数据分析与故障特征提取` 为**加粗独立段**，首行缩进 2 字符（`firstLine=482`），非标题样式，不进目录 |
 
-Linux 无宋体/黑体时的回退：宋体 → Noto Serif CJK SC / 思源宋体；黑体 → Noto Sans CJK SC / 思源黑体。
-DOCX 里写字体名即可（由打开者的 Word 解析），PDF 引擎需要在模板里列回退链。
+Linux 无宋体/黑体时的回退（`scripts/setup_env.sh` 已安装）：Times New Roman → Liberation Serif（同字宽）；宋体 → Noto Serif CJK SC；黑体 → Noto Sans CJK SC；楷体 → AR PL KaitiM GB。
+DOCX 里写字体名即可（由打开者的 Word 解析），PDF 引擎需要在模板里列回退链：Typst 见 `5writing/templates/zh/huaweibei/lib.typ`（默认 Linux 字体，`--input official-fonts=true` 切换官方字体名），LaTeX 见 `huaweibei-latex/main.tex` 的 `\IfFontExistsTF`。
+数据图（matplotlib）不走这套字体：中文必须用 TrueType 字体（文泉驿微米黑等，Noto CJK 为 CFF 会导致 PDF 乱码），由 `3coding-visual/scripts/mm_plot_style.py` 自动选择，见 `_references/figure_style.md`。
 
 ## 3. 标题（三级）
 

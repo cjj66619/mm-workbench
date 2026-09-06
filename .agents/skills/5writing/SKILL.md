@@ -99,7 +99,7 @@ MCM/ICM/COMAP -> en/mcm-latex
 ls "$SKILL_DIR/templates/zh/<竞赛>/main.typ" 2>/dev/null && echo "OK" || echo "MISSING"
 ```
 
-- **文件存在（OK）**：直接将 `templates/zh/<竞赛>/` 整目录复制到 `paper/`。这些模板是自包含入口文件，不依赖额外共享样式文件。
+- **文件存在（OK）**：直接将 `templates/zh/<竞赛>/` 整目录复制到 `paper/`。这些模板是自包含入口文件，不依赖额外共享样式文件（`huaweibei` 例外：`main.typ` 与 `sections/*.typ` 都 `#import "lib.typ"`/`"../lib.typ"`，复制整目录即可，见下文“华为杯模板专项”）。
 - **文件不存在（MISSING）**：说明 skill 未完整安装或在沙箱中，此时依照本 SKILL.md 步骤 3 列出的对应节文件结构，从零重建最小可编译 Typst 框架，并在 `paper/` 内注明"重建自 default 结构"。
 
 存在匹配模板时，绝不从零开始写论文。
@@ -317,6 +317,17 @@ N.5 问题小结        2–5 句用题目的语言回答原问，交代给下�
 ```
 
 验证内容直接写在 N.4，不必等到 `8_sensitivity` 才出现；`8_sensitivity` 放全文级的灵敏度与模型检验汇总，`9_evaluation` 的优点必须对应本文具体做法，缺点后紧跟改进方向。公式一律用数学环境书写，禁止截图；符号说明表含“单位”列。
+
+#### 华为杯模板专项（`huaweibei` / `huaweibei-latex`）
+
+两套模板的页边距、字体字号、标题级别、图表题位置、公式编号都按 `../_references/huaweibei_body_format.md`（官方 Word 模板实测参数）设定；**不要在 `sections/` 里自行 `#set text` / `\fontsize` 改排版**，需要调整就改模板并对照该文件。
+
+- **Typst `lib.typ`**：模板共享定义，`main.typ` 用 `#import "lib.typ": *`，章节文件用 `#import "../lib.typ": *`。提供：
+  - 字体回退链 `song-font` / `hei-font` / `kai-font` / `code-font`。默认是 Linux 已安装字体（Liberation Serif + Noto CJK + 文鼎楷体，编译零字体 warning）；在装有官方字体的 Windows/macOS 上用 `typst compile --root . --input official-fonts=true paper/main.typ` 切到 Times New Roman / 宋体 / 黑体 / 楷体。
+  - 三线表 `#three-line-table([表题], (列宽…), ([表头]…), ([单元格]…))`：顶/底 1.5pt，表头下 0.5pt，表题自动“表 N”置于表上。所有表格都用它，不要手写 `#table` + `figure`（`4_symbols.typ` 有现成例子）。
+- **LaTeX `main.tex`**：题目写在 `\newcommand{\papertitle}{…}`（封面与摘要页共用，`docx-export` 也从这里抄题目）；三线表用 `\threelinetable{表题}{列定义}{表头}{表体}`，例：`\threelinetable{主要符号说明}{ccc}{符号 & 含义 & 单位}{$x_i$ & 第 $i$ 个变量 & --}`。它的签名被 `docx-export/scripts/paper2docx.py` 内联定义依赖，改参数个数需同步该脚本。
+- **数据图**：`figures/*.pdf` 由 `3coding-visual` 用 `mm_plot_style.py` 生成（中文 TrueType 字体、`pdf.fonttype=42`），插图前可用 `python3 ../../.agents/skills/3coding-visual/scripts/check_figures.py --expect-cjk figures/` 确认中文可提取、字体嵌入正常，否则 DOCX 转 PNG 后会乱码。图宽用 `width: 85%` / `0.85\textwidth` 内缩放，不要超过版心（见 `../_references/figure_style.md`）。
+- **交稿**：编译通过后由 `docx-export` 生成 Word；拿到当届官方 Word 模板时传 `--reference 官方模板.docx`。
 
 ### 步骤 5：参考文献
 
