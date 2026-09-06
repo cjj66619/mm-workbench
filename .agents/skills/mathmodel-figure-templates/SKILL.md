@@ -30,7 +30,8 @@ python3 /home/user/.claude/skills/mathmodel-figure-templates/scripts/render_temp
 - Work under the current workspace unless the user gives another path.
 - Default project folder: `绘图复刻`.
 - Script path: `绘图复刻/scripts/make_<template>.py`.
-- Outputs: `绘图复刻/outputs/<template>_replica.png`, `.pdf`, `.svg`.
+- Outputs: `绘图复刻/outputs/<template>_replica.png`, `.pdf`, `.svg` (plus `outputs/_manifest.json` written by `save_fig`).
+- `render_template.py` also copies the shared style module `mm_plot_style.py` (from `../3coding-visual/scripts/`) into `绘图复刻/scripts/`; every template calls `apply_style(...)` and `save_fig(...)` from it, so fonts, export and PDF font checks follow `../_references/figure_style.md`.
 - Use the bundled scripts as the first choice; edit the copied workspace script only when the user requests customization.
 - The bundled scripts use deterministic simulated data. Do not claim simulated values reproduce a source study exactly.
 
@@ -53,8 +54,11 @@ python3 /home/user/.claude/skills/mathmodel-figure-templates/scripts/render_temp
 If the user asks for changes, copy/run the nearest template first, then edit the copied file in `绘图复刻/scripts/`. Preserve:
 
 - `MPLCONFIGDIR` before importing matplotlib.
+- `configure_matplotlib()` built on `mm_plot_style.apply_style(...)`; put template-specific tweaks in its `extra={...}` instead of calling `mpl.rcParams.update` with fonts.
+- `save_fig(fig, output_stem, formats=("png", "pdf", "svg"))` for export (runs the PDF font check).
 - deterministic seeds for simulated data.
-- PNG/PDF/SVG export.
 - readable labels, legends, and high-DPI output.
+
+For a Chinese-language paper switch `apply_style(lang="zh")` and translate in-figure text; the module picks a TrueType CJK font so the PDF survives the DOCX conversion.
 
 Use `references/plot-recipes.md` for implementation patterns.

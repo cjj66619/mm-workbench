@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import sys
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -10,6 +11,18 @@ os.environ.setdefault("MPLCONFIGDIR", str(ROOT / ".mplconfig"))
 import matplotlib as mpl
 
 mpl.use("Agg")
+
+# 统一绘图风格：优先用与本脚本同级的 mm_plot_style.py（render_template.py 会一并复制），
+# 否则回退到仓库内 3coding-visual/scripts。
+_STYLE_DIRS = [Path(__file__).resolve().parent, Path(__file__).resolve().parents[3] / "3coding-visual" / "scripts"]
+for _style_dir in _STYLE_DIRS:
+    if (_style_dir / "mm_plot_style.py").exists():
+        if str(_style_dir) not in sys.path:
+            sys.path.insert(0, str(_style_dir))
+        break
+else:
+    raise SystemExit("mm_plot_style.py not found; copy it from .agents/skills/3coding-visual/scripts/ next to this script")
+from mm_plot_style import apply_style, save_fig
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -73,20 +86,19 @@ PANELS = [
 
 
 def configure_matplotlib() -> None:
-    mpl.rcParams.update(
-        {
-            "font.family": "sans-serif",
-            "font.sans-serif": ["Arial", "Helvetica", "DejaVu Sans", "sans-serif"],
-            "svg.fonttype": "none",
-            "pdf.fonttype": 42,
-            "font.size": 9,
+    apply_style(
+        font="sans",
+        lang="en",
+        base_size=9,
+        spines="box",
+        extra={
             "axes.linewidth": 1.2,
             "xtick.major.width": 0.9,
             "ytick.major.width": 0.9,
             "xtick.major.size": 3.0,
             "ytick.major.size": 3.0,
             "legend.frameon": False,
-        }
+        },
     )
 
 
@@ -128,8 +140,8 @@ def draw_top_distribution(ax: plt.Axes, train: np.ndarray, test: np.ndarray, tra
             values,
             bins=bins,
             density=True,
-            facecolor=mpl.colors.to_rgba(color, 0.12),
-            edgecolor=mpl.colors.to_rgba(color, 0.58),
+            facecolor=mpl.colors.to_hex(mpl.colors.to_rgba(color, 0.12), keep_alpha=True),
+            edgecolor=mpl.colors.to_hex(mpl.colors.to_rgba(color, 0.58), keep_alpha=True),
             linewidth=1.05,
         )
         grid = np.linspace(0, 110, 240)
@@ -262,10 +274,7 @@ def make_figure(output_stem: Path) -> None:
         draw_model_panel(fig, outer[idx // 2, idx % 2], panel, seed=20260505 + idx * 103)
 
     output_stem.parent.mkdir(parents=True, exist_ok=True)
-    fig.savefig(output_stem.with_suffix(".png"), dpi=300, bbox_inches="tight")
-    fig.savefig(output_stem.with_suffix(".pdf"), bbox_inches="tight")
-    fig.savefig(output_stem.with_suffix(".svg"), bbox_inches="tight")
-    plt.close(fig)
+    save_fig(fig, output_stem, formats=("png", "pdf", "svg"), dpi=300)
 
 
 def main() -> None:

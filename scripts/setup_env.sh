@@ -17,7 +17,9 @@ export PATH="$BIN:$PATH"
 
 APT_PKGS=(
   texlive-xetex texlive-lang-chinese texlive-latex-extra texlive-fonts-recommended
-  fonts-noto-cjk fonts-noto-cjk-extra fonts-wqy-zenhei fonts-dejavu
+  # Typst/LaTeX 中文：Noto CJK；matplotlib 中文必须是 TrueType（Noto CJK 为 CFF，配 pdf.fonttype=42 会出乱码 PDF）：文泉驿
+  # 西文替代 Times New Roman：Liberation Serif（同字宽）；楷体：文鼎 AR PL KaitiM GB（lib.typ 摘要页标签）
+  fonts-noto-cjk fonts-noto-cjk-extra fonts-wqy-zenhei fonts-wqy-microhei fonts-liberation fonts-arphic-gkai00mp fonts-dejavu
   poppler-utils libreoffice-writer libreoffice-math xvfb
   python3-pip python3-venv
 )
@@ -87,7 +89,9 @@ check_all() {
   for c in typst xelatex pandoc soffice pdftoppm drawio xvfb-run python3; do
     if have "$c"; then ok "$c" "$(command -v "$c")"; else miss "$c" ""; fail=1; fi
   done
-  if [[ -n "$(fc-list "Noto Serif CJK SC")" ]]; then ok "font" "Noto Serif CJK SC"; else miss "font" "Noto Serif CJK SC"; fail=1; fi
+  for f in "Noto Serif CJK SC" "Noto Sans CJK SC" "WenQuanYi Micro Hei" "Liberation Serif" "AR PL KaitiM GB"; do
+    if [[ -n "$(fc-list "$f")" ]]; then ok "font" "$f"; else miss "font" "$f"; fail=1; fi
+  done
   python3 - <<'PY' || fail=1
 import importlib, sys
 mods = {"numpy":"numpy","scipy":"scipy","pandas":"pandas","matplotlib":"matplotlib","seaborn":"seaborn",
@@ -100,6 +104,18 @@ for m, pkg in mods.items():
     except ImportError:
         print(f"MISS py:{pkg}"); bad = 1
 sys.exit(bad)
+PY
+  # matplotlib 中文：mm_plot_style 必须能选到 TrueType 中文字体（否则出图中文乱码/不可提取）
+  python3 - "$(dirname "$0")/../.agents/skills/3coding-visual/scripts" <<'PY' || fail=1
+import os, sys
+os.environ.setdefault("MPLBACKEND", "Agg")
+sys.path.insert(0, sys.argv[1])
+from mm_plot_style import resolve_fonts
+info = resolve_fonts(font="sans", lang="zh")
+if info["cjk"] and info["cjk_kind"] == "truetype":
+    print(f"OK   mpl-cjk        {info['cjk']} (TrueType, pdf.fonttype=42)")
+else:
+    print(f"MISS mpl-cjk        {info['cjk'] or 'none'} ({info['cjk_kind']})"); sys.exit(1)
 PY
   return $fail
 }

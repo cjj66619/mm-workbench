@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import sys
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -10,6 +11,18 @@ os.environ.setdefault("MPLCONFIGDIR", str(ROOT / ".mplconfig"))
 import matplotlib as mpl
 
 mpl.use("Agg")
+
+# 统一绘图风格：优先用与本脚本同级的 mm_plot_style.py（render_template.py 会一并复制），
+# 否则回退到仓库内 3coding-visual/scripts。
+_STYLE_DIRS = [Path(__file__).resolve().parent, Path(__file__).resolve().parents[3] / "3coding-visual" / "scripts"]
+for _style_dir in _STYLE_DIRS:
+    if (_style_dir / "mm_plot_style.py").exists():
+        if str(_style_dir) not in sys.path:
+            sys.path.insert(0, str(_style_dir))
+        break
+else:
+    raise SystemExit("mm_plot_style.py not found; copy it from .agents/skills/3coding-visual/scripts/ next to this script")
+from mm_plot_style import apply_style, save_fig
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -63,16 +76,16 @@ NODES = [
 
 
 def configure_matplotlib() -> None:
-    mpl.rcParams.update(
-        {
-            "font.family": "serif",
-            "font.serif": ["Times New Roman", "Times", "DejaVu Serif", "serif"],
-            "svg.fonttype": "none",
-            "pdf.fonttype": 42,
-            "font.size": 11,
+    apply_style(
+        font="serif",
+        lang="en",
+        base_size=11,
+        spines="box",
+        extra={
             "axes.linewidth": 0.8,
-        }
+        },
     )
+    mpl.rcParams["savefig.pad_inches"] = 0.03
 
 
 def polar_to_xy(theta_deg: float, radius: float) -> np.ndarray:
@@ -307,10 +320,7 @@ def make_figure(output_stem: Path) -> None:
     draw_labels(ax, layout, NODES)
 
     output_stem.parent.mkdir(parents=True, exist_ok=True)
-    fig.savefig(output_stem.with_suffix(".png"), dpi=300, bbox_inches="tight", pad_inches=0.03)
-    fig.savefig(output_stem.with_suffix(".pdf"), bbox_inches="tight", pad_inches=0.03)
-    fig.savefig(output_stem.with_suffix(".svg"), bbox_inches="tight", pad_inches=0.03)
-    plt.close(fig)
+    save_fig(fig, output_stem, formats=("png", "pdf", "svg"), dpi=300)
 
 
 def main() -> None:
