@@ -40,8 +40,8 @@ test -s "$WORK/figures/flow.pdf" && test -s "$WORK/figures/flow.png"
 step "Typst 模板：填占位符 + 插图 + 编译"
 cp -r "$TPL/huaweibei" "$WORK/paper"
 sed -i 's/\[论文标题\]/基于混合整数规划的冒烟测试论文/g;
-        s/\[\[中文摘要内容：[^]]*\]\]/[本文建立回归模型，测试集 $R^2$ 达到 0.896。]/;
-        s/\[关键词1\] #h(1em) \[关键词2\] #h(1em) \[关键词3\]/[回归] #h(1em) [优化]/' "$WORK/paper/main.typ"
+        s/\[中文摘要内容：[^]]*\]/本文建立回归模型，测试集 $R^2$ 达到 0.896。/;
+        s/\[关键词1\] #h(2em) \[关键词2\] #h(2em) \[关键词3\]/[回归] #h(1em) [优化]/' "$WORK/paper/main.typ"
 cat >> "$WORK/paper/sections/5_problem1.typ" <<'EOF'
 
 #figure(image("../../figures/fig_q1.pdf", width: 85%), caption: [问题一残差分布])

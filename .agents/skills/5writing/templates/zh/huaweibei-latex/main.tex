@@ -2,19 +2,20 @@
 % =============================================================================
 %  华为杯（中国研究生数学建模竞赛）LaTeX 模板
 %  对应 Typst 模板 zh/huaweibei/main.typ 的全部功能。
+%  排版参数来源：.agents/skills/_references/huaweibei_body_format.md（官方 Word 模板正文格式）。
 %
-%  字体依赖（正文宋体 / 标题黑体 / 强调楷体）：
-%    - 规范字体：SimSun（宋体）、SimHei（黑体）、KaiTi（楷体）。
+%  字体依赖（正文宋体 / 标题黑体 / 题头隶书）：
+%    - 规范字体：SimSun（宋体）、SimHei（黑体）、LiSu（隶书）。
 %    - 本模板不指定 fontset，由 ctex 按操作系统自动选用等价字体
 %      （Windows: SimSun/SimHei；macOS: Songti SC/Heiti SC；Linux: Fandol 或 Noto CJK）。
 %    - 若想强制使用规范字体，可在 \documentclass 选项中加 fontset=windows。
-%    - 西文正文：Times New Roman；代码等宽：DejaVu Sans Mono → Menlo（都缺失时回退到默认字体）。
+%    - 西文/数字：Times New Roman；代码等宽：Courier New → DejaVu Sans Mono → Menlo。
 %  编译方式：xelatex main.tex （需运行两遍以生成目录）
 % =============================================================================
-\documentclass[12pt, a4paper]{ctexart}  % fontset 由 ctex 按操作系统自动选择（Windows: SimSun; macOS: Songti; Linux: Fandol）
+\documentclass[12pt, a4paper]{ctexart}
 
-% ---------- 页面：A4，上 30mm，下 25mm，左右 22.5mm ----------
-\usepackage[a4paper, top=30mm, bottom=25mm, left=22.5mm, right=22.5mm]{geometry}
+% ---------- 页面：A4，四边 2.5cm；页眉空（距边 1.5cm）；页脚页码距边 1.75cm ----------
+\usepackage[a4paper, margin=2.5cm, headheight=12pt, headsep=0.5cm, footskip=0.75cm]{geometry}
 
 % ---------- 数学 ----------
 \usepackage{amsmath}
@@ -27,70 +28,107 @@
 \usepackage{multirow}
 
 % ---------- 字体（fontspec + ctex，xelatex 编译） ----------
-% 中文宋体/黑体/楷体由 ctex 按系统自动设置，并自动定义 \songti / \heiti / \kaishu 等字体命令。
-% 西文正文与代码等宽字体：
 \IfFontExistsTF{Times New Roman}{\setmainfont{Times New Roman}}{}
-\IfFontExistsTF{DejaVu Sans Mono}{\setmonofont{DejaVu Sans Mono}}{\IfFontExistsTF{Menlo}{\setmonofont{Menlo}}{}}
+\IfFontExistsTF{Courier New}{\setmonofont{Courier New}}{%
+  \IfFontExistsTF{DejaVu Sans Mono}{\setmonofont{DejaVu Sans Mono}}{\IfFontExistsTF{Menlo}{\setmonofont{Menlo}}{}}}
+% 隶书 / 华文新魏 仅 Windows/macOS fontset 提供；缺失时回退黑体
+\providecommand{\lishu}{\heiti}
 
-% ---------- 正文：12pt，首行缩进 2em，两端对齐 ----------
-% typst leading 1.02em => \linespread ≈ (1+1.02)/1.2 ≈ 1.68
-\linespread{1.68}
+% ---------- 正文：小四 12pt，首行缩进 2 字符，两端对齐，单倍行距，段前后 0 ----------
+% Word 中宋体 12pt 的“单倍行距”约 15.6pt；LaTeX 基准 14.4pt × 1.08 ≈ 15.6pt
+\linespread{1.08}\selectfont
 \setlength{\parindent}{2em}
+\setlength{\parskip}{0pt}
 
-% ---------- 标题编号（\ctexset 配置） ----------
-% 一级标题用阿拉伯数字"1."，二级及以下用 1.1 / 1.1.1
+% ---------- 标题：一级“一、”黑体四号居中；二级“1.1”小四加粗；三级“1.1.1”小四不加粗（编号黑体）；段前后 6pt ----------
 \ctexset{
-  section/number       = \arabic{section},
-  subsection/number    = \arabic{section}.\arabic{subsection},
-  subsubsection/number = \arabic{section}.\arabic{subsection}.\arabic{subsubsection},
+  section = {
+    name        = {,、},
+    number      = \chinese{section},
+    format      = \centering\heiti\zihao{4},
+    aftername   = {},
+    beforeskip  = 6pt,
+    afterskip   = 6pt,
+  },
+  subsection = {
+    number      = \arabic{section}.\arabic{subsection},
+    format      = \raggedright\bfseries\zihao{-4},
+    aftername   = \enspace,
+    beforeskip  = 6pt,
+    afterskip   = 6pt,
+  },
+  subsubsection = {
+    number      = \arabic{section}.\arabic{subsection}.\arabic{subsubsection},
+    format      = \raggedright\zihao{-4},
+    numberformat = \heiti,
+    aftername   = \enspace,
+    beforeskip  = 6pt,
+    afterskip   = 6pt,
+  },
 }
 
-% ---------- 标题格式（titlesec 配置） ----------
-\usepackage{titlesec}
-\titleformat{\section}
-  {\centering\fontsize{14pt}{16.8pt}\heiti\bfseries}
-  {\arabic{section}.}{1em}{}
-\titleformat{\subsection}
-  {\fontsize{12pt}{14.4pt}\heiti\bfseries}
-  {\arabic{section}.\arabic{subsection}}{1em}{}
-\titleformat{\subsubsection}
-  {\fontsize{12pt}{14.4pt}\heiti\bfseries}
-  {\arabic{section}.\arabic{subsection}.\arabic{subsubsection}}{1em}{}
-\titlespacing{\section}       {0pt}{1.15em}{1.0em}
-\titlespacing{\subsection}    {0pt}{0.85em}{0.55em}
-\titlespacing{\subsubsection} {0pt}{0.75em}{0.45em}
-
-% ---------- 目录（tocloft 点线引导） ----------
+% ---------- 目录：标题 16pt 加粗居中；条目 10.5pt，到三级，点线引导 ----------
 \usepackage{tocloft}
-\renewcommand{\cftsecfont}{\heiti\bfseries}
-\renewcommand{\cftsecpagefont}{\heiti\bfseries}
+\setcounter{tocdepth}{3}
+\renewcommand{\cftsecfont}{\fontsize{10.5pt}{12.6pt}\selectfont}
+\renewcommand{\cftsecpagefont}{\fontsize{10.5pt}{12.6pt}\selectfont}
+\renewcommand{\cftsubsecfont}{\fontsize{10.5pt}{12.6pt}\selectfont}
+\renewcommand{\cftsubsecpagefont}{\fontsize{10.5pt}{12.6pt}\selectfont}
+\renewcommand{\cftsubsubsecfont}{\fontsize{10.5pt}{12.6pt}\selectfont}
+\renewcommand{\cftsubsubsecpagefont}{\fontsize{10.5pt}{12.6pt}\selectfont}
 \renewcommand{\cftsecleader}{\cftdotfill{\cftdotsep}}
 \renewcommand{\cftsubsecleader}{\cftdotfill{\cftdotsep}}
 \renewcommand{\cftsubsubsecleader}{\cftdotfill{\cftdotsep}}
+\setlength{\cftbeforesecskip}{3pt}
+\setlength{\cftbeforesubsecskip}{0pt}
+\setlength{\cftbeforesubsubsecskip}{0pt}
+\setlength{\cftsubsecindent}{1em}
+\setlength{\cftsubsubsecindent}{2em}
+
+% ---------- 图题（图下）/ 表题（表上）：“图1 xxx” / “表1 xxx”，11pt 加粗居中，全篇连续编号 ----------
+\usepackage{caption}
+\DeclareCaptionLabelFormat{nospace}{#1#2}
+\captionsetup{font={bf,small}, labelformat=nospace, labelsep=space, justification=centering, skip=3pt}
+\captionsetup[table]{position=above, skip=3pt}
+\setlength{\abovecaptionskip}{3pt}
+\setlength{\belowcaptionskip}{6pt}
+
+% ---------- 列表：编号 (1)，缩进约 2 字符，段前后 6pt ----------
+\usepackage{enumitem}
+\setlist[enumerate]{label=(\arabic*), leftmargin=2.9em, labelsep=0.5em, itemsep=0pt, parsep=0pt, topsep=6pt}
+\setlist[itemize]{leftmargin=2.9em, itemsep=0pt, parsep=0pt, topsep=6pt}
 
 % ---------- 表格与代码 ----------
 \usepackage{booktabs}
+\setlength{\heavyrulewidth}{1.5pt}
+\setlength{\lightrulewidth}{0.5pt}
+\renewcommand{\arraystretch}{1.25}   % 单元格行距 ≈ 18pt
 \usepackage{array}
 \usepackage{xcolor}
 \usepackage{listings}
 \lstset{
-  basicstyle=\ttfamily\small,
-  backgroundcolor=\color{black!3},
+  basicstyle=\ttfamily\fontsize{10.5pt}{12.6pt}\selectfont,
   frame=single,
-  framesep=6pt,
-  rulecolor=\color{black!30},
-  framerule=0.8pt,
+  framesep=4pt,
+  framerule=0.5pt,
   breaklines=true,
   showstringspaces=false,
   columns=fullflexible,
   keepspaces=true,
 }
 
-% ---------- 页码：底部居中 ----------
-\pagestyle{plain}
+% ---------- 页码：页脚居中 9pt；页眉空 ----------
+\usepackage{fancyhdr}
+\fancyhf{}
+\fancyfoot[C]{\fontsize{9pt}{11pt}\selectfont\thepage}
+\renewcommand{\headrulewidth}{0pt}
+\pagestyle{fancy}
+
+% ---------- 前置页参数（正文占位符由 5writing 填写；docx-export 从此处抽取标题/摘要/关键词） ----------
+\newcommand{\papertitle}{[论文标题]}
 
 % ---------- 自定义命令（对应 Typst 函数） ----------
-% \coverpage：封面页，logo + title + 信息表
+% \coverpage：封面页，logo + title + 信息表。封面（赛徽/届数/学校/队号）年年变，开赛后按当届官方模板替换。封面为第 0 页，不显示页码。
 \newcommand{\coverpage}{%
   \thispagestyle{empty}%
   \setcounter{page}{0}%
@@ -112,53 +150,53 @@
   \end{center}
   \newpage
 }
-% \abstractpage：摘要页，title 图 + 题目 + 摘要 + 关键词
+% \abstractpage：摘要页（第 1 页）。题目行 隶书 18pt + 题名 14pt 下划线；“摘 要：”隶书 18pt 居中；摘要正文段前后 3pt；关键词间两个全角空格
 \newcommand{\abstractpage}{%
   \setcounter{page}{1}%
+  \setlength{\parskip}{6pt}%
   \begin{center}
     \includegraphics[width=10.8cm]{title.pdf}\\[0.65cm]
-    {\fontsize{14pt}{16.8pt} 题\quad 目\quad}%
-    \parbox{10cm}{%
-      \centering{\fontsize{16pt}{19.2pt}\heiti\bfseries [论文标题]}%
-      \par\vspace{2pt}%
-      \rule{10cm}{0.5pt}%
-    }\\[0.45cm]
-    {\fontsize{14pt}{16.8pt}\heiti\bfseries 摘\quad\quad 要：}\\[0.45cm]
+  \end{center}
+  \noindent{\fontsize{18pt}{27pt}\lishu 题\quad 目：}{\fontsize{14pt}{21pt}\selectfont\underline{\papertitle}}\par
+  \vspace{0.3cm}
+  \begin{center}
+    {\fontsize{18pt}{27pt}\lishu 摘\quad 要：}\\[0.3cm]
   \end{center}
   中文摘要内容：问题概述 + 每个子问题的方法和数值结果 + 结论\par
-  \vspace{0.65em}
-  {\heiti\bfseries 关键词：}关键词1 \quad 关键词2 \quad 关键词3\par
+  \vspace{0.6cm}
+  \noindent{\fontsize{18pt}{27pt}\lishu 关键词：}关键词1 \quad 关键词2 \quad 关键词3\par
+  \setlength{\parskip}{0pt}%
   \newpage
 }
-% \tocpage：目录页，标题"目录"居中 16pt 黑体加粗，点线引导
+% \tocpage：目录页，标题“目录”16pt 加粗居中，不进目录
 \makeatletter
 \newcommand{\tocpage}{%
   \begin{center}
-    {\fontsize{16pt}{19.2pt}\heiti\bfseries 目录}
+    {\fontsize{16pt}{20pt}\bfseries 目录}
   \end{center}
-  \vspace{1.0cm}
+  \vspace{0.5em}
   \@starttoc{toc}%
   \newpage
 }
 \makeatother
-% \referencescn：参考文献节，标题"参考文献"居中 14pt 黑体加粗（不带编号但进目录）
+% \referencescn：参考文献节，标题“参考文献”一级样式、不编号、进目录；条目 [N] 12pt 悬挂缩进
 \newcommand{\referencescn}{%
   \section*{参考文献}%
   \addcontentsline{toc}{section}{参考文献}%
   \input{references}%
 }
-% \appendixcn：附录节，标题"附录 A  核心代码"居中 14pt 黑体加粗
+% \appendixcn：附录节，标题“附录”一级样式、不编号、进目录
 \newcommand{\appendixcn}{%
-  \section*{附录 A\quad 核心代码}%
-  \addcontentsline{toc}{section}{附录 A\quad 核心代码}%
+  \section*{附录}%
+  \addcontentsline{toc}{section}{附录}%
   \input{sections/A_code}%
 }
-% \threelinetable{标题}{列定义}{表头}{表格内容}：三线表，标题在表格上方居中 10.5pt 黑体加粗
-% 调用示例：\threelinetable{表 1 示例}{ccc}{A & B & C}{1 & 2 & 3 \\ 4 & 5 & 6}
+% \threelinetable{表题}{列定义}{表头}{表格内容}：三线表（顶/底 1.5pt，表头下 0.5pt，无竖线），表题自动编号置于表上方
+% 调用示例：\threelinetable{示例}{ccc}{A & B & C}{1 & 2 & 3 \\ 4 & 5 & 6}
 \newcommand{\threelinetable}[4]{%
-  \begin{center}
-    {\fontsize{10.5pt}{12.6pt}\heiti\bfseries #1}\par
-    \vspace{0.6em}
+  \begin{table}[H]
+    \centering
+    \caption{#1}
     \begin{tabular}{#2}
       \toprule
       #3 \\
@@ -166,7 +204,7 @@
       #4 \\
       \bottomrule
     \end{tabular}
-  \end{center}
+  \end{table}
 }
 
 \begin{document}

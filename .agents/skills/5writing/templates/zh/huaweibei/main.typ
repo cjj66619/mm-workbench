@@ -1,14 +1,14 @@
 #set document(title: "[论文标题]", author: ())
 
-#let song-font = ("SimSun", "Songti SC", "STSong", "Noto Serif CJK SC", "Times New Roman")
-#let kai-font = ("KaiTi", "Kaiti SC", "STKaiti", "SimSun", "Noto Serif CJK SC")
-#let hei-font = ("SimHei", "Heiti SC", "STHeiti", "Noto Sans CJK SC", "SimSun")
-#let code-font = ("Courier New", "Menlo", "DejaVu Sans Mono")
+// 排版参数来源：.agents/skills/_references/huaweibei_body_format.md（官方 Word 模板正文格式）。
+// 西文/数字 Times New Roman，中文宋体（正文）/ 黑体（标题）；Linux 无宋体黑体时回退到 Noto CJK。
+#import "lib.typ": *
 
+// 一级 “一、” 中文数字；二/三级 “1.1” / “1.1.1”（isLgl：恒为阿拉伯数字）
 #let heading-numbering(..nums) = {
   let ns = nums.pos()
   if ns.len() == 1 {
-    numbering("1.", ns.at(0))
+    numbering("一、", ns.at(0))
   } else if ns.len() == 2 {
     numbering("1.1", ns.at(0), ns.at(1))
   } else {
@@ -16,31 +16,63 @@
   }
 }
 
+// A4，四边 2.5 cm，页眉距 1.5 cm（空），页脚距 1.75 cm，页码居中 9 pt
 #set page(
   paper: "a4",
-  margin: (top: 30mm, bottom: 25mm, left: 22.5mm, right: 22.5mm),
-  numbering: "1",
+  margin: (top: 2.5cm, bottom: 2.5cm, left: 2.5cm, right: 2.5cm),
+  header-ascent: 1.5cm,
+  footer-descent: 1.75cm - 0.75cm,
+  footer: context {
+    let n = counter(page).get().first()
+    if n > 0 { align(center)[#text(font: song-font, size: 9pt)[#n]] }
+  },
 )
-#set text(font: song-font, size: 12pt, lang: "zh")
-#set par(first-line-indent: (amount: 2em, all: true), justify: true, leading: 1.02em, spacing: 0.65em)
-#set enum(numbering: "1.")
+// 正文：小四 12 pt，首行缩进 2 字符，两端对齐，单倍行距（宋体 12 pt 自然行距 ≈ 15.6 pt → leading 0.3em），段前后 0
+#set text(font: song-font, size: 12pt, lang: "zh", region: "cn")
+#set par(first-line-indent: (amount: 2em, all: true), justify: true, leading: 0.35em, spacing: 0.35em)
+#set enum(numbering: "(1)", indent: 2em)
+#set list(indent: 2em)
 #set heading(numbering: heading-numbering)
-#set math.equation(numbering: "(1)")
-#show heading.where(level: 1): it => block(above: 1.15em, below: 1.0em, width: 100%)[
-  #align(center)[#text(font: hei-font, size: 14pt, weight: "bold")[#it]]
+// 行间公式：居中，编号 (N) 全篇连续、右对齐
+#set math.equation(numbering: "(1)", supplement: [式])
+#show math.equation.where(block: true): set block(above: 0.8em, below: 0.8em)
+// 标题：一级 黑体 14 pt 居中；二级 12 pt 加粗；三级 12 pt 不加粗；段前/段后 6 pt；不缩进
+#show heading.where(level: 1): it => block(above: 6pt + 0.35em, below: 6pt + 0.35em, width: 100%, sticky: true)[
+  #set par(first-line-indent: 0pt)
+  #set text(font: hei-font, size: 14pt, weight: "regular")
+  #align(center)[#if it.numbering != none [#counter(heading).display(it.numbering)]#it.body]
 ]
-#show heading.where(level: 2): it => block(above: 0.85em, below: 0.55em)[
-  #text(font: hei-font, size: 12pt, weight: "bold")[#it]
+#show heading.where(level: 2): it => block(above: 6pt + 0.35em, below: 6pt + 0.35em, sticky: true)[
+  #set par(first-line-indent: 0pt)
+  #text(font: song-font, size: 12pt, weight: "bold")[#counter(heading).display(it.numbering) #it.body]
 ]
-#show heading.where(level: 3): it => block(above: 0.75em, below: 0.45em)[
-  #text(font: hei-font, size: 12pt, weight: "bold")[#it]
+#show heading.where(level: 3): it => block(above: 6pt + 0.35em, below: 6pt + 0.35em, sticky: true)[
+  #set par(first-line-indent: 0pt)
+  #text(font: hei-font, size: 12pt, weight: "regular")[#counter(heading).display(it.numbering)]
+  #text(font: song-font, size: 12pt, weight: "regular")[#it.body]
 ]
+// 图题在图下、表题在表上：“图N xxx” / “表N xxx”，11 pt 加粗居中，全篇连续编号
+#set figure(numbering: "1")
+#show figure.caption: it => block(above: 3pt, below: 6pt)[
+  #set par(first-line-indent: 0pt)
+  #text(size: 11pt, weight: "bold")[#it.supplement#context it.counter.display(it.numbering) #it.body]
+]
+#show figure.where(kind: table): set figure.caption(position: top)
+#show figure.where(kind: table): set figure(supplement: [表])
+#show figure.where(kind: image): set figure(supplement: [图])
+#show figure: set block(above: 6pt + 0.35em, below: 6pt + 0.35em)
+// 表格：三线表（顶/底 1.5 pt，表头下 0.5 pt，无竖线），单元格 12 pt 居中、无缩进
+#set table(stroke: none, align: center + horizon, inset: (x: 0.6em, y: 4pt))
+#show table.cell: set par(first-line-indent: 0pt)
+#show table.cell.where(y: 0): strong
+// 附录代码：等宽 10.5 pt，0.5 pt 全框线，无缩进
 #show raw.where(block: true): it => block(
   inset: (x: 0.7em, y: 0.55em),
-  stroke: 0.5pt + rgb("#808080"),
-  fill: rgb("#f7f7f7"),
+  stroke: 0.5pt + black,
   width: 100%,
-)[#text(font: code-font, size: 10pt)[#it]]
+)[#set par(first-line-indent: 0pt, leading: 0.4em); #text(font: code-font, size: 10.5pt)[#it]]
+#show raw.where(block: false): set text(font: code-font, size: 10.5pt)
+
 
 #let cover-info-table() = align(center)[
   #block(width: 15.2cm)[
@@ -94,8 +126,10 @@
   ]
 ]
 
+// 封面：赛徽 / 届数 / 学校 / 队号 年年变，开赛后按当届官方模板替换 logo.pdf、title.pdf 与本函数。封面为第 0 页，不显示页码。
 #let cover-page() = {
   counter(page).update(0)
+  set par(first-line-indent: 0pt)
   align(center)[#image("logo.pdf", width: 14.5cm)]
   v(1.35cm)
   align(center)[#image("title.pdf", width: 10.8cm)]
@@ -104,105 +138,41 @@
   pagebreak()
 }
 
+// 摘要页（第 1 页）：题目行 隶书 18 pt + 题名 14 pt 下划线；“摘 要：”居中；正文段前后 3 pt；关键词间两个全角空格
 #let abstract-page() = {
   counter(page).update(1)
+  set par(first-line-indent: 0pt, spacing: 3pt)
   align(center)[#image("title.pdf", width: 10.8cm)]
   v(0.65cm)
-  grid(
-    columns: (4.5em, 1fr),
-    align: (left + horizon, center + horizon),
-    text(size: 14pt)[题 #h(1em) 目],
-    block(width: 100%)[
-      #align(center)[#text(font: hei-font, size: 16pt, weight: "bold")[[论文标题]]]
-      #line(length: 100%, stroke: 0.5pt)
-    ],
-  )
-  v(0.45cm)
-  align(center)[#text(font: hei-font, size: 14pt, weight: "bold")[摘 #h(2em) 要：]]
-  v(0.45cm)
-  [[中文摘要内容：问题概述 + 每个子问题的方法和数值结果 + 结论]]
-  v(0.65em)
+  block(width: 100%)[
+    #set par(leading: 0.75em)
+    #text(font: kai-font, size: 18pt)[题#h(1em)目：]#underline(text(size: 14pt)[[论文标题]])
+  ]
+  v(0.3cm)
+  align(center)[#text(font: kai-font, size: 18pt)[摘#h(1em)要：]]
+  v(0.3cm)
   block[
-    #set par(first-line-indent: 0pt)
-    #text(font: hei-font, size: 12pt, weight: "bold")[关键词：] [关键词1] #h(1em) [关键词2] #h(1em) [关键词3]
+    #set par(first-line-indent: (amount: 2em, all: true), spacing: 6pt + 0.35em)
+    [中文摘要内容：问题概述 + 每个子问题的方法和数值结果 + 结论]
+  ]
+  v(0.6cm)
+  block[
+    #text(font: kai-font, size: 18pt)[关键词：] [关键词1] #h(2em) [关键词2] #h(2em) [关键词3]
   ]
   pagebreak()
 }
 
-#let toc-line(level, title, page) = {
-  let indent = if level == 1 { 0pt } else if level == 2 { 28pt } else { 52pt }
-  let weight = if level == 1 { "bold" } else { "regular" }
-  block(above: if level == 1 { 0.52em } else { 0.24em })[
-    #grid(
-      columns: (auto, 1fr, auto),
-      column-gutter: 0.55em,
-      inset: (left: indent),
-      text(font: if level == 1 { hei-font } else { song-font }, weight: weight)[#title],
-      box(height: 1em, width: 100%)[#v(0.72em)#line(length: 100%, stroke: (dash: "dotted", thickness: 0.8pt))],
-      text(weight: weight)[#page],
-    )
-  ]
-}
-
+// 目录页：标题 16 pt 加粗居中；条目 10.5 pt，到三级，点线引导；不进目录
 #let toc-page() = {
-  align(center)[#text(font: hei-font, size: 16pt, weight: "bold")[目录]]
-  v(1.0cm)
-  toc-line(1, [1. 问题重述], [3])
-  toc-line(2, [1.1 问题背景], [3])
-  toc-line(2, [1.2 问题内容], [3])
-  toc-line(1, [2. 问题分析], [3])
-  toc-line(2, [2.1 问题一的分析], [3])
-  toc-line(2, [2.2 问题二的分析], [3])
-  toc-line(2, [2.3 问题三的分析], [3])
-  toc-line(1, [3. 模型假设], [3])
-  toc-line(1, [4. 符号说明], [3])
-  toc-line(1, [5. 问题一的模型建立与求解], [4])
-  toc-line(2, [5.1 数据预处理], [4])
-  toc-line(2, [5.2 模型建立], [4])
-  toc-line(2, [5.3 求解结果], [4])
-  toc-line(1, [6. 问题二的模型建立与求解], [4])
-  toc-line(2, [6.1 特征选择], [4])
-  toc-line(2, [6.2 模型优化], [4])
-  toc-line(1, [7. 问题三的模型建立与求解], [5])
-  toc-line(2, [7.1 优化模型], [5])
-  toc-line(2, [7.2 算法求解], [5])
-  toc-line(2, [7.3 结果], [5])
-  toc-line(1, [8. 敏感性分析], [5])
-  toc-line(2, [8.1 参数敏感性], [5])
-  toc-line(1, [9. 模型评价与推广], [5])
-  toc-line(2, [9.1 模型优点], [5])
-  toc-line(2, [9.2 模型缺点], [5])
-  toc-line(2, [9.3 推广], [5])
-  toc-line(1, [参考文献], [5])
-  toc-line(1, [A 附录 核心代码], [6])
+  set par(first-line-indent: 0pt)
+  align(center)[#text(size: 16pt, weight: "bold")[目录]]
+  v(0.5em)
+  show outline.entry.where(level: 1): set block(above: 3pt + 0.35em, below: 3pt)
+  show outline.entry.where(level: 2): set block(above: 3pt, below: 3pt)
+  show outline.entry.where(level: 3): set block(above: 3pt, below: 3pt)
+  set text(size: 10.5pt)
+  outline(title: none, depth: 3, indent: 1em)
   pagebreak()
-}
-
-#let three-line-table(caption, columns, header, body, inset: (x: 0.35em, y: 0.52em), cell-align: center) = {
-  let col-count = header.len()
-  let body-rows = calc.floor(body.len() / col-count)
-  let bottom-y = body-rows + 1
-  let styled-header = header.map(cell => strong(cell))
-
-  block(width: 100%, breakable: false)[
-    #align(center)[
-      #box[
-        #align(center)[#text(font: hei-font, size: 10.5pt, weight: "bold")[#caption]]
-        #v(0.6em)
-        #table(
-          columns: columns,
-          align: cell-align,
-          stroke: none,
-          inset: inset,
-          table.hline(y: 0, stroke: 0.8pt),
-          table.hline(y: 1, stroke: 0.5pt),
-          table.hline(y: bottom-y, stroke: 0.8pt),
-          ..styled-header,
-          ..body,
-        )
-      ]
-    ]
-  ]
 }
 
 #cover-page()
@@ -219,8 +189,13 @@
 #include("sections/8_sensitivity.typ")
 #include("sections/9_evaluation.typ")
 
-#align(center)[#text(font: hei-font, size: 14pt, weight: "bold")[参考文献]]
+// 参考文献 / 附录：一级标题不编号、仍居中 14 pt 黑体、进目录
+#heading(level: 1, numbering: none)[参考文献]
+#block[
+  #set par(first-line-indent: 0pt, hanging-indent: 2em, leading: 0.5em, spacing: 0.5em)
+  #include("references.typ")
+]
 
 #pagebreak()
-#align(center)[#text(font: hei-font, size: 14pt, weight: "bold")[附录 A #h(1em) 核心代码]]
+#heading(level: 1, numbering: none)[附录]
 #include("sections/A_code.typ")
